@@ -1,7 +1,7 @@
 # ARK-G-Assignments
 
 ## How To Use Git with GitHub
-// Install Git Package on Debian
+###### Install Git Package on Debian
 * sudo apt-get install git-core
 
 // Download repository from github
@@ -15,6 +15,8 @@
   <li>git commit -m "Some Comment"  // Prepare for push</li>
   <li>git push            // You are sending all chosen changes to your repository</li>
 </ul>
+
+// 
 
 // Remove files from repository
 <ul>
