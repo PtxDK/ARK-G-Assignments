@@ -2,7 +2,7 @@
 
 ## How To Use Git with GitHub
 // Install Git Package on Debian
- sudo apt-get install git-core
+* sudo apt-get install git-core
 
 // Download repository from github
 * git clone httpslink.link
