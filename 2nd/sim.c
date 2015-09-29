@@ -519,7 +519,11 @@ int alu(){
 
     case FUNCT_SYSCALL :
       return SAW_SYSCALL;
+
+    case FUNCT_ADDU :
+      regs[GET_RD(if_id.inst)] = regs[GET_RS(if_id.inst)]+regs[GET_RT(if_id.inst)];
       break;
+      
 
     default :
       return (ERROR_UNKNOWN_FUNCT);
