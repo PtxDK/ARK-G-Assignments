@@ -6,7 +6,7 @@
 * sudo apt-get install git-core
 
 ###### Download repository from github
-* git clone httpslink.link
+* git clone https://github.com/PtxDK/ARK-G-Assignments
 
 
 ###### Add changes to repository
