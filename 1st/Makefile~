@@ -1,0 +1,12 @@
+.PHONY: all clean
+
+CC=gcc
+CFLAGS=-Werror -Wall -Wextra -pedantic -std=c11
+
+all:sim
+
+sim: mips32.h sim.c
+	$(CC) $(CFLAGS) -o sim sim.c
+
+clean:
+	rm -f sim

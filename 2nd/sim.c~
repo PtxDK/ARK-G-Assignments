@@ -1,0 +1,345 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "mips32.h"
+#include "elf.h"
+
+//Defines macros needed by the system.
+#define ERROR_INVALID_ARGS (-1)
+#define ERROR_IO_ERROR (-2)
+#define ERROR_UNKNOWN_OPCODE (-3)
+#define ERROR_UNKNOWN_FUNCT (-4)
+#define MEMSZ (640*1024)
+#define FOURTH_LAST (MIPS_RESERVE-4+MEMSZ)
+#define STATUS_SYSCALL (1)
+#define STATUS_ERROR (2)
+
+
+// Declarations
+static uint32_t regs[32];
+uint32_t pc;
+static size_t instr_counter;
+uint32_t adress;
+unsigned char mem[MEMSZ];
+int read_config (const char *path);
+int read_config_stream (FILE * fp);
+int interp();
+int show_status ();
+int interp_instr(uint32_t inst);
+int interp_r(uint32_t inst);
+int interp_j(uint32_t inst);
+int interp_jal(uint32_t inst);
+int interp_beq(uint32_t inst);
+int interp_addiu(uint32_t inst);
+int interp_lw(uint32_t inst);
+int interp_sw(uint32_t inst);
+int interp_syscall(uint32_t inst);
+
+
+
+
+// Main
+int main(int argc, char *argv[]) {
+  int res;
+  res = 0;
+  
+
+  // check if the nuber of arguments is correct.
+    if (argc != 3) {
+    printf("Wrong number of arguments.\nsim CONFIG_FILE DEST_FILE\n");
+    return (ERROR_INVALID_ARGS);
+  } 
+
+
+  // Initiate registers.
+  read_config(argv[1]);
+
+  // check if we can call elf_dum, if not possible throw error.
+  if((elf_dump(argv[2], &pc, &mem[0], MEMSZ))!= 0){
+      return (ERROR_IO_ERROR);   
+    }
+
+  // sets the SP (that is located in regs[29]) to the 4th last in the memory.
+  regs[29]= FOURTH_LAST;
+
+  interp();
+
+  //Show status of the registers.
+  show_status();
+
+  return res;
+   
+}
+
+
+// open and close the startup file
+int read_config (const char *path){
+  FILE *fdesc = fopen(path, "r");
+
+  if( fdesc == NULL){ // if the file is empty.
+ return (ERROR_IO_ERROR);
+  }
+  else{
+    read_config_stream(fdesc); // if the file is not empty read it.
+
+    if (fclose(fdesc) != 0) //if the file failed to close.
+    return (ERROR_IO_ERROR);
+  }
+
+  return read_config_stream(fdesc);
+}
+
+//read the startup file
+int read_config_stream (FILE * fp){
+  int i = 0;
+  uint32_t v;
+
+    for( i = 0 ; i <= 8; i++ )
+      { 
+  if (fscanf(fp, "%u", &v) != 1 ){
+    return (ERROR_IO_ERROR);
+  }
+  regs[8+i] = v;
+      }
+    return 0;
+}
+
+// prints the status of the registers.
+int show_status(){
+  printf("Executed %zu instructions \n", instr_counter);
+  printf("pc = 0x%x \n", pc);       // Program Couner
+  printf("at = 0x%x \n", pc);       // Assembler Temp
+  printf("v0 = 0x%x \n", regs[2]);  // Values for funtion results
+  printf("v1 = 0x%x \n", regs[3]);
+  printf("t0 = 0x%x \n", regs[8]);  // Temps
+  printf("t1 = 0x%x \n", regs[9]);
+  printf("t2 = 0x%x \n", regs[10]);
+  printf("t3 = 0x%x \n", regs[11]);
+  printf("t4 = 0x%x \n", regs[12]);
+  printf("t5 = 0x%x \n", regs[13]);
+  printf("t6 = 0x%x \n", regs[14]);
+  printf("t7 = 0x%x \n", regs[15]);
+  printf("sp = 0x%x \n", regs[29]); // Stack Pointer
+  printf("ra = 0x%x \n", regs[31]); // Return Address
+  return 0;
+}
+
+// runs the infinite loop and checks if there is more instructions to do.
+int interp(){
+  uint32_t  temp_instruct;
+  int status;
+  instr_counter = 0;
+    
+  while (1 == 1){
+    instr_counter++;
+    
+    temp_instruct = GET_BIGWORD(mem, pc);
+    pc += 4;
+
+    status = interp_instr(temp_instruct);
+
+    if (status == (STATUS_SYSCALL)){
+      printf("SYSCALL was detected, closing now. \n");
+      break;
+    }
+    if (status == STATUS_ERROR){ 
+      return (ERROR_IO_ERROR);
+      
+    }
+  }
+  return 0;
+}
+
+//  finds the opcode for a 32 bit mips instruction
+int interp_instr(uint32_t inst){
+  uint32_t opcode;
+  int result;
+  opcode = GET_OPCODE(inst);
+// checks which opcode it responds too and runs the appropriate function
+  switch(opcode)
+    {
+    case OPCODE_R :
+      result = interp_r(inst);
+      if (result != 0)
+	return result;
+
+    case OPCODE_J :
+      interp_j(inst);
+      break;
+     
+    case OPCODE_JAL :
+      interp_jal(inst);
+      break;
+      
+    case OPCODE_BEQ :
+      interp_beq(inst);
+      break;
+
+    case OPCODE_BNE :
+      interp_beq(inst);
+      break;
+      
+    case OPCODE_ADDIU :
+      interp_addiu(inst);
+      break;
+      
+    case OPCODE_SLTI :
+      interp_beq(inst);
+      break;
+
+    case OPCODE_ANDI :
+      interp_beq(inst);
+      break;
+
+    case OPCODE_ORI :
+      interp_beq(inst);
+      break;
+
+    case OPCODE_LUI :
+      interp_beq(inst);
+      break;
+      
+    case OPCODE_LW :
+      interp_lw(inst);
+      break;
+      
+    case OPCODE_SW :
+      interp_sw(inst);
+      break;      
+      
+    default : 
+      return(ERROR_UNKNOWN_OPCODE);
+    }
+  return 0;
+}
+
+// if the opcode had the R format, it runs this function
+int interp_r(uint32_t inst) {
+// finds the funct code for the instruction
+  uint32_t f_code;
+  f_code = GET_FUNCT(inst);
+  return 1;
+
+// Runs the function corresponding to the f_code
+  switch(f_code) {
+  case FUNCT_JR :
+    pc = regs[GET_RS(inst)]; // Sets pc = value from register
+    break;
+
+  case FUNCT_SYSCALL :
+    return(STATUS_SYSCALL);
+
+  case FUNCT_ADDU :
+    regs[GET_RD(inst)] = regs[GET_RS(inst)]+regs[GET_RT(inst)];
+    break;
+
+  case FUNCT_SUBU :
+    regs[GET_RD(inst)] = regs[GET_RS(inst)]-regs[GET_RT(inst)];
+    break;
+
+  case FUNCT_AND :
+    regs[GET_RD(inst)] = regs[GET_RS(inst)] & regs[GET_RT(inst)];
+    break;
+
+  case FUNCT_OR :
+    regs[GET_RD(inst)] = regs[GET_RS(inst)] | regs[GET_RT(inst)];
+    break;
+
+  case FUNCT_NOR :
+    regs[GET_RD(inst)] = ~(regs[GET_RS(inst)] | regs[GET_RT(inst)]);
+    break;
+
+  case FUNCT_SLT :
+    if (regs[GET_RS(inst)] < regs[GET_RT(inst)]) { regs[GET_RD(inst)] = 1;}
+    else {regs[GET_RD(inst)] = 0;}
+    break;
+
+  case FUNCT_SLL :
+    regs[GET_RD(inst)] = regs[GET_RS(inst)] << regs[GET_SHAMT(inst)];
+    break;
+
+  case FUNCT_SRL :
+    regs[(GET_RD(inst))] = regs[GET_RS(inst)] >> regs[GET_SHAMT(inst)];
+    break;
+    
+  default :
+    printf(" at default");
+    return(ERROR_UNKNOWN_FUNCT);
+  }
+  return 0;
+}
+
+
+int interp_j(uint32_t inst) {
+  adress = GET_ADDRESS(inst);
+  adress = adress << 2;
+  pc = (pc & MS_4B) | adress;
+  return 0;
+}
+
+int interp_jal(uint32_t inst) {
+  regs[31] = pc + 8;
+  
+  adress = GET_ADDRESS(inst);
+  adress = adress << 2;
+  pc = (pc & MS_4B) | adress;
+  return 0;
+}
+
+int interp_beq(uint32_t inst) {
+  if (GET_RS(inst) == GET_RT(inst)){
+    pc = pc + 4 + (SIGN_EXTEND(GET_IMM(inst)) << 2);
+  }
+  return 0;
+}
+
+int interp_bne(uint32_t inst) {
+  if (GET_RS(inst) != GET_RT(inst)){
+    pc = pc + 4 + (SIGN_EXTEND(GET_IMM(inst)) << 2);
+  } 
+  return 0;
+}
+
+int interp_lw(uint32_t inst) {
+  regs[GET_RT(inst)] = GET_BIGWORD(mem, regs[GET_RS(inst)] + SIGN_EXTEND(GET_IMM(inst)));
+  return 0;
+}
+
+int interp_sw(uint32_t inst) {
+   SET_BIGWORD(mem, regs[GET_RS(inst)] + SIGN_EXTEND(GET_IMM(inst)), regs[GET_RT(inst)]);
+  return 0;
+}
+
+int interp_addiu(uint32_t inst) {
+  regs[GET_RT(inst)]= regs[GET_RS(inst)] + SIGN_EXTEND(GET_IMM(inst)); 
+  return 0;
+}
+
+
+int interp_andi(uint32_t inst) {
+  regs[GET_RT(inst)] = regs[GET_RS(inst)] & ZERO_EXTEND(GET_IMM(inst));
+  return 0;
+}
+
+
+int interp_lui(uint32_t inst) {
+  regs[GET_RT(inst)] = GET_IMM(inst) << 16;
+  return 0;
+}
+
+int interp_ori(uint32_t inst) {
+  regs[GET_RT(inst)] = regs[GET_RS(inst)] | ZERO_EXTEND(GET_IMM(inst));
+  return 0;
+}
+
+
+int interp_slti(uint32_t inst) {
+  uint32_t signed_extended_immidiate;
+  signed_extended_immidiate = SIGN_EXTEND(GET_IMM(inst));
+
+  if (regs[GET_RS(inst)] < signed_extended_immidiate){
+    regs[GET_RT(inst)] = 1;
+  }
+  else regs[GET_RT(inst)] = 0;
+  return 0;
+}
