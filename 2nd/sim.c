@@ -52,6 +52,7 @@ void interp_wb();
 
 struct preg_if_id {
   uint32_t inst;
+  uint32_t next_pc;
   //...
 };
 static struct preg_if_id if_id;
@@ -62,12 +63,15 @@ struct preg_id_ex {
   bool reg_write; // whether we should write back to a register
   bool mem_to_reg;
   bool alu_src;
+  bool branch;
   uint32_t rt;
   uint32_t rs_value;
   uint32_t rt_value;
   uint32_t sign_ext_imm;
   uint32_t funct;
   int reg_dst;
+  int shamt;
+  uint32_t next_pc;
 };
 static struct preg_id_ex id_ex;
 
@@ -76,10 +80,12 @@ struct preg_ex_mem {
   bool mem_write; // whether we should write from memory
   bool reg_write; // whether we should write back to a register
   bool mem_to_reg;
+  bool branch;
   uint32_t rt;
   uint32_t rt_value;
   int alu_res;
   int reg_dst;
+  uint32_t branch_target;
 };
 
 static struct preg_ex_mem ex_mem;
@@ -189,17 +195,24 @@ int show_status(){
 int cycle(){
   
   interp_wb();
+  printf("wb end \n");
   interp_mem();
-
+  printf("mem end \n");
   if (interp_ex() != 0){
     return (ERROR_UNKNOWN_FUNCT);
   }
-
+  printf("ex end \n");
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
-
+  printf("id end \n");
   interp_if(SAW_SYSCALL);
+  printf("if end \n");
+  if ((ex_mem.branch == true) & (ex_mem.alu_res == 0)){
+    pc =ex_mem.branch_target;
+    if_id.inst = 0;
+    instr_counter -= 2; 
+  }
   printf("cycle end \n");
   return 0;
 }
@@ -417,9 +430,13 @@ int interp_slti(uint32_t inst) {
 
 // interp instruction fetch
 void interp_if(){
+  //printf("in if \n");
   if_id.inst = GET_BIGWORD(mem, pc);
-  pc+=4;
+  //printf("inst set \n");
+  if_id.next_pc = pc += 4;
+  //printf("pc incrementet \n");
   instr_counter++;
+  //printf("instr counter incrementet");
 }
 
 //prepping the id_ex struct.
@@ -435,59 +452,62 @@ int prep_id_ex(){
 int interp_control(){
   uint32_t opcode;
   opcode = GET_OPCODE(if_id.inst);
+
+  switch(opcode)
+    {
+    case OPCODE_LW :
+      id_ex.mem_read = true;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = true;
+      id_ex.branch = false;
+      id_ex.funct = FUNCT_ADD;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      break;
+	
+    case OPCODE_SW :
+      id_ex.mem_read = false;
+      id_ex.mem_write = true;
+      id_ex.reg_write = false;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.funct = FUNCT_ADD;
+      break;
+
+    case OPCODE_R :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = false;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.funct = GET_FUNCT(if_id.inst);
+      id_ex.reg_dst = GET_RD(if_id.inst);
+      break;
+	
+    case OPCODE_BEQ :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = false;
+      id_ex.alu_src = false;
+      id_ex.branch = true;
+      id_ex.funct = FUNCT_SUB;
+      break;
+
+    default :
+      return (ERROR_UNKNOWN_OPCODE);
+    }
+  return 0;
   
-  //check if if_id.inst = 0, if so do a nop.
-  if (if_id.inst == 0){
-    id_ex.mem_read = false;
-    id_ex.mem_write = false;
-    id_ex.reg_write = false;
-    
-    return 0;
-  }
-  // if if_id.inst != 0, do stuff.
-  else{
-    switch(opcode)
-      {
-      case OPCODE_LW :
-	id_ex.mem_read = true;
-	id_ex.mem_write = false;
-	id_ex.reg_write = true;
-	id_ex.alu_src = true;
-	id_ex.mem_to_reg = true;
-	id_ex.funct = FUNCT_ADD;
-	id_ex.reg_dst = GET_RT(if_id.inst);
-	break;
-	
-      case OPCODE_SW :
-	id_ex.mem_read = false;
-	id_ex.mem_write = true;
-	id_ex.reg_write = false;
-	id_ex.alu_src = true;
-	id_ex.mem_to_reg = false;
-	id_ex.funct = FUNCT_ADD;
-	break;
-
-      case OPCODE_R :
-	id_ex.mem_read = false;
-	id_ex.mem_write = false;
-	id_ex.reg_write = true;
-	id_ex.alu_src = false;
-	id_ex.mem_to_reg = false;
-	id_ex.funct = GET_FUNCT(if_id.inst);
-	id_ex.reg_dst = GET_RD(if_id.inst);
-	
-	break;
-
-      default :
-	return (ERROR_UNKNOWN_OPCODE);
-      }
-    return 0;
-  }
 }
 
 // indførte if else check, pludselig intet uendelig loop, dog ingen fejl?
 int interp_id(){
   prep_id_ex();
+  id_ex.shamt = GET_SHAMT(if_id.inst);
+  id_ex.next_pc = if_id.next_pc;
   if (interp_control() == 0){
     return 0;
   }
@@ -509,9 +529,6 @@ int alu(){
   // checks which opcode it responds too and runs the appropriate function
   switch(id_ex.funct)
     {
-      // in case of nop, do nothing.1
-    case 0 :
-      break;
 
     case FUNCT_ADD :
       ex_mem.alu_res = id_ex.sign_ext_imm + second_op;
@@ -519,6 +536,42 @@ int alu(){
 
     case FUNCT_SYSCALL :
       return SAW_SYSCALL;
+
+    case FUNCT_ADDU :
+      ex_mem.alu_res = id_ex.sign_ext_imm + second_op;
+      break;
+
+    case FUNCT_NOR :
+      ex_mem.alu_res = ~id_ex.rs_value | id_ex.rt_value;
+      break;
+      
+    case FUNCT_OR :
+      ex_mem.alu_res = id_ex.rs_value | id_ex.rt_value;
+	break;
+
+    case FUNCT_SLL :
+      ex_mem.alu_res = id_ex.rs_value << id_ex.shamt;
+
+    case FUNCT_SLT :
+      if (id_ex.rs_value < id_ex.rt_value){ex_mem.alu_res = 1;}
+      else {ex_mem.alu_res = 1;}
+      break;
+
+    case FUNCT_SLTU :
+      if (id_ex.rs_value < id_ex.rt_value){ex_mem.alu_res = 1;}
+      else {ex_mem.alu_res = 1;}
+      break;
+
+    case FUNCT_SRL :
+      ex_mem.alu_res = id_ex.rs_value >> id_ex.shamt;
+      break;
+      
+    case FUNCT_SUB :
+      ex_mem.alu_res = id_ex.rs_value - id_ex.rt_value;
+      break;
+      
+    case FUNCT_SUBU :
+      ex_mem.alu_res = id_ex.rs_value - id_ex.rt_value;
       break;
 
     default :
@@ -530,8 +583,9 @@ int alu(){
   return 0;
 }
 
-
+// simulates the ex stage.
 int interp_ex(){
+  ex_mem.branch = id_ex.branch; 
   ex_mem.mem_to_reg = id_ex.mem_to_reg;
   ex_mem.mem_read = id_ex.mem_read;
   ex_mem.mem_write = id_ex.mem_write;
@@ -539,6 +593,7 @@ int interp_ex(){
   ex_mem.rt = id_ex.rt;
   ex_mem.rt_value = id_ex.rt_value;
   ex_mem.reg_dst = id_ex.reg_dst;
+  ex_mem.branch_target = (id_ex.next_pc) +  (id_ex.sign_ext_imm << 2);
   //calling alu() to fill the last variable with data.
   if (alu() != 0){
     return (ERROR_UNKNOWN_FUNCT);
@@ -548,6 +603,7 @@ int interp_ex(){
   }
 }
 
+// simulates the mem stage.
 void interp_mem(){
   mem_wb.mem_to_reg = ex_mem.mem_to_reg;
   mem_wb.reg_write = ex_mem.reg_write;
@@ -564,6 +620,7 @@ void interp_mem(){
   }
 }
 
+// simulates the wb stage.
 void interp_wb(){
   if ((mem_wb.reg_write == false) | (mem_wb.reg_dst == 0)){
 
