@@ -64,6 +64,7 @@ struct preg_id_ex {
   bool mem_to_reg;
   bool alu_src;
   bool branch;
+  bool jump;
   uint32_t rt;
   uint32_t rs_value;
   uint32_t rt_value;
@@ -72,6 +73,7 @@ struct preg_id_ex {
   int reg_dst;
   int shamt;
   uint32_t next_pc;
+  uint32_t jump_target;
 };
 static struct preg_id_ex id_ex;
 
@@ -212,6 +214,14 @@ int cycle(){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
     instr_counter -= 2; 
+  }
+  if ((ex_mem.branch == true) & (ex_mem.alu_res != 0)){
+    pc =ex_mem.branch_target;
+    if_id.inst = 0;
+    instr_counter -= 2; 
+  }
+  if (id_ex.jump == true){
+    pc = id_ex.jump_target;
   }
   printf("cycle end \n");
   return 0;
@@ -462,6 +472,7 @@ int interp_control(){
       id_ex.alu_src = true;
       id_ex.mem_to_reg = true;
       id_ex.branch = false;
+      id_ex.jump = false;
       id_ex.funct = FUNCT_ADD;
       id_ex.reg_dst = GET_RT(if_id.inst);
       break;
@@ -473,6 +484,7 @@ int interp_control(){
       id_ex.alu_src = true;
       id_ex.mem_to_reg = false;
       id_ex.branch = false;
+      id_ex.jump = false;
       id_ex.funct = FUNCT_ADD;
       break;
 
@@ -483,6 +495,7 @@ int interp_control(){
       id_ex.alu_src = false;
       id_ex.mem_to_reg = false;
       id_ex.branch = false;
+      id_ex.jump = false;
       id_ex.funct = GET_FUNCT(if_id.inst);
       id_ex.reg_dst = GET_RD(if_id.inst);
       break;
@@ -493,8 +506,30 @@ int interp_control(){
       id_ex.reg_write = false;
       id_ex.alu_src = false;
       id_ex.branch = true;
+      id_ex.jump = false;
       id_ex.funct = FUNCT_SUB;
       break;
+
+    case OPCODE_BNE :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = false;
+      id_ex.alu_src = false;
+      id_ex.branch = true;
+      id_ex.jump = false;
+      id_ex.funct = FUNCT_SUB;
+      break;
+
+    case OPCODE_J :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = false;
+      id_ex.alu_src = false;
+      id_ex.branch = false;
+      id_ex.jump = true;
+      id_ex.jump_target = ((GET_ADDRESS(if_id.inst) << 2) | (if_id.next_pc));
+      break;
+
 
     default :
       return (ERROR_UNKNOWN_OPCODE);
@@ -605,32 +640,47 @@ int interp_ex(){
 
 // simulates the mem stage.
 void interp_mem(){
+  //printf("in interp mem \n");
   mem_wb.mem_to_reg = ex_mem.mem_to_reg;
+  //printf("mem_to_reg set \n");
   mem_wb.reg_write = ex_mem.reg_write;
+  //printf("reg_write set \n");
   mem_wb.rt = ex_mem.rt;
+  //printf("no rt set \n");
   mem_wb.alu_res = ex_mem.alu_res;
+  //printf("no alu_res set \n");
   mem_wb.reg_dst = ex_mem.reg_dst;
+  //printf("no reg_dst set \n");
   
   if (ex_mem.mem_read == true){
+    //printf("in if mem_read == true \n");
     mem_wb.read_data = GET_BIGWORD(mem, ex_mem.alu_res);
+    //printf("done if mem_read == true \n");
   }
   
   if (ex_mem.mem_write == true){
+    //printf("in if mem_write == true \n");
+    // SEGMENTATION FEJL SKER HER!!!! RIP!!!!!!  FIX PL0X!!!!
     SET_BIGWORD(mem, ex_mem.alu_res, ex_mem.rt_value);
+    //printf("done if mem_write == true \n");
   }
 }
 
 // simulates the wb stage.
 void interp_wb(){
+  printf("in wb \n");
   if ((mem_wb.reg_write == false) | (mem_wb.reg_dst == 0)){
-
+    printf("no writeback \n");
   }
   else {
     if (mem_wb.mem_to_reg == true){
       mem_wb.reg_dst = mem_wb.read_data; 
+      printf(" reg_dst = read_data \n");
     }
     else{
       mem_wb.reg_dst = mem_wb.alu_res;
+      printf(" reg_dst = alu_res \n");
     }
   }
 }
+
