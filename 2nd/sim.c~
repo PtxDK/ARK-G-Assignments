@@ -461,7 +461,6 @@ int prep_id_ex(){
 // controls everything
 int interp_control(){
   uint32_t opcode;
-  uint32_t tempJ_adress;
   opcode = GET_OPCODE(if_id.inst);
 
   switch(opcode)
@@ -528,23 +527,8 @@ int interp_control(){
       id_ex.alu_src = false;
       id_ex.branch = false;
       id_ex.jump = true;
-      tempJ_adress = (GET_ADDRESS(if_id.inst));
-      tempJ_adress = tempJ_adress << 2;
-      id_ex.jump_target = (tempJ_adress) | (if_id.next_pc & MS_4B);
+      id_ex.jump_target = ((GET_ADDRESS(if_id.inst) << 2) | (if_id.next_pc));
       break;
-      
-
-      // HER FEJLER! når ikke videre end ex.
-    case OPCODE_JAL :
-      id_ex.mem_read = false;
-      id_ex.mem_write = false;
-      id_ex.reg_write = true;
-      id_ex.alu_src = false;
-      id_ex.branch = false;
-      id_ex.jump = true;
-      id_ex.funct = FUNCT_ADD;
-      id_ex.rs_value = 0;
-      id_ex.rt_value = pc;
 
 
     default :
