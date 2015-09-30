@@ -22,6 +22,8 @@
 * git commit -m "Some Comment"  // Prepare for push
 * git push            // you are sending all chosen changes to your repository
 
+###### Download changes
+* git pull
 
 ###### If greater changes has been made such as folder changes
 * git add . --all         // Removes everything from repository and replaces it with your folder
