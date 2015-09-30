@@ -10,9 +10,9 @@
 
 
 ###### Add changes to repository
-* git add .           // Adds everything to next push
+* git add .             // Adds everything to next push
 * git status            // shows changes you are about to commit
-* git commit -m "Some Comment"  // Prepare for push</li>
+* git commit -m "Some Comment"  // Prepare for push
 * git push            // You are sending all chosen changes to your repository
 
 
@@ -28,3 +28,20 @@
 * git status            // Shows changes you are about to commit
 * git commit -m "Some Comment"  // Prepare for push
 * git push            // You are sending all chosen changes to your repository
+
+##### Branching
+
+###### Create and start working on new branch
+* git checkout -b branchname
+
+###### Deletion of Branch
+* git branch -d branchname
+
+###### Merge branch into master branch
+* git checkout master
+* git merge branchname
+
+
+
+
+
