@@ -15,6 +15,8 @@
 * git commit -m "Some Comment"  // Prepare for push
 * git push            // You are sending all chosen changes to your repository
 
+###### If you are ahead in branches user "push origin master
+* git push origin master
 
 ###### Remove files from repository
 * git rm filemane         // Removes file from repo on next push
