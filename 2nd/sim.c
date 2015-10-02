@@ -48,6 +48,7 @@ int alu();
 int interp_ex();
 void interp_mem();
 void interp_wb();
+void write_reg();
 
 
 struct preg_if_id {
@@ -195,7 +196,9 @@ int show_status(){
 
 
 int cycle(){
-  
+  printf("PC=%x\n", pc);
+  write_reg();
+  getchar();
   interp_wb();
   printf("wb end \n");
   interp_mem();
@@ -699,4 +702,31 @@ void interp_wb(){
     }
   }
 }
+// prints everything, debugging.
+void write_reg(){
+  printf("if_id:\n");
+  printf("inst: %x\n\n",if_id.inst);
 
+  printf("id_ex\n");
+  printf("mem_read: %x\n", id_ex.mem_read);
+  printf("mem_write: %x\n", id_ex.mem_write);
+  printf("reg_write: %x\n", id_ex.reg_write);
+  printf("rt: %x\n", id_ex.rt);
+  printf("rs_value: %x\n",id_ex.rs_value);
+  printf("rt_value: %x\n",id_ex.rt_value);
+  printf("sign_ext_imm: %x\n",id_ex.sign_ext_imm);
+  printf("funct: %x\n\n",id_ex.funct);
+
+  printf("ex_mem:\n");
+  printf("ex_mem.mem_read: %x\n",ex_mem.mem_read);
+  printf("mem_write: %x\n",ex_mem.mem_write);
+  printf("reg_write: %x\n",ex_mem.reg_write);
+  printf("rt:%x\n",ex_mem.rt);
+  printf("rt_value: %x\n",ex_mem.rt_value);
+  printf("alu_res: %x\n",ex_mem.alu_res);
+
+  printf("mem_wb: \n");
+  printf("regwrite: %x\n",mem_wb.reg_write);
+  printf("rt: %x\n",mem_wb.rt);
+  printf("read_data: %x\n",mem_wb.read_data);
+}
