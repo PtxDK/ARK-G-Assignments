@@ -585,14 +585,14 @@ int alu(){
     {
 
     case FUNCT_ADD :
-      ex_mem.alu_res = id_ex.sign_ext_imm + second_op;
+      ex_mem.alu_res = id_ex.rs_value + second_op;
       break;
 
     case FUNCT_SYSCALL :
       return SAW_SYSCALL;
 
     case FUNCT_ADDU :
-      ex_mem.alu_res = id_ex.sign_ext_imm + second_op;
+      ex_mem.alu_res = id_ex.rs_value + second_op;
       break;
 
     case FUNCT_NOR :
@@ -693,11 +693,11 @@ void interp_wb(){
   }
   else {
     if (mem_wb.mem_to_reg == true){
-      mem_wb.reg_dst = mem_wb.read_data; 
+      regs[mem_wb.reg_dst] = mem_wb.read_data; 
       printf(" reg_dst = read_data \n");
     }
     else{
-      mem_wb.reg_dst = mem_wb.alu_res;
+      regs[mem_wb.reg_dst] = mem_wb.alu_res;
       printf(" reg_dst = alu_res \n");
     }
   }
