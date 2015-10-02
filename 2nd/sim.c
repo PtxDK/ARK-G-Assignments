@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
 
   res = interp();
 
-  //Show status of the registers.
+  // Show status of the registers.
   show_status();
 
   return res;
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-// open and close the startup file
+// Open and close the startup file
 int read_config (const char *path){
   FILE *fdesc = fopen(path, "r");
 
@@ -160,7 +160,7 @@ int read_config (const char *path){
   return read_config_stream(fdesc);
 }
 
-//read the startup file
+// Read the startup file
 int read_config_stream (FILE * fp){
   int i = 0;
   uint32_t v;
@@ -175,7 +175,7 @@ int read_config_stream (FILE * fp){
   return 0;
 }
 
-// prints the status of the registers.
+// Prints the status of the registers.
 int show_status(){
   printf("Executed %zu instructions \n", instr_counter);
   printf("pc = 0x%x \n", pc);       // Program Couner
@@ -200,23 +200,27 @@ int cycle(){
   printf("PC=%x\n", pc);
   write_reg();
   getchar();
+  
   //calling interp_wb
   interp_wb();
   printf("wb end \n");
+  
   //calling interp_mem
   interp_mem();
   printf("mem end \n");
+  
   //calling interp_ex
   if (interp_ex() != 0){
     return (alu_return);
   }
   printf("ex end \n");
+  
   //calling interp_id
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
+
   printf("id end \n");
-  //----------------------------------------------------------------------FEJL?!??! gav SAW_SYSCALL?
   //calling interp_if
   interp_if();
   //----------------------------------------------------------------------FEJL?!?!?
@@ -311,8 +315,9 @@ int interp_instr(uint32_t inst){
       
     case OPCODE_SW :
       interp_sw(inst);
-      break;      
-      
+      break;
+
+
     default : 
       return(ERROR_UNKNOWN_OPCODE);
     }
@@ -544,6 +549,7 @@ int interp_control(){
       id_ex.funct = FUNCT_SUB;
       break;
 
+      // Jump
     case OPCODE_J :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -557,7 +563,7 @@ int interp_control(){
       break;
       
 
-      // HER FEJLER! når ikke videre end ex.
+      // Jump and Link
     case OPCODE_JAL :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -573,6 +579,20 @@ int interp_control(){
       id_ex.jump_target = (tempJ_adress) | (if_id.next_pc & MS_4B);
       id_ex.reg_dst = 31;
       break;
+
+
+      // Add Immediate
+    case OPCODE_ADDI :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.funct = FUNCT_ADD;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+
 
 
     default :
@@ -627,10 +647,11 @@ int alu(){
       
     case FUNCT_OR :
       ex_mem.alu_res = id_ex.rs_value | second_op;
-	break;
+    	break;
 
     case FUNCT_SLL :
       ex_mem.alu_res = second_op << id_ex.shamt;
+      break;
 
     case FUNCT_SLT :
       if (id_ex.rs_value < second_op){ex_mem.alu_res = 1;}
