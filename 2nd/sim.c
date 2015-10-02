@@ -110,7 +110,7 @@ static struct preg_mem_wb mem_wb;
 
 // Main
 int main(int argc, char *argv[]) {
-//  printf("main start");
+  //  printf("main start");
   int res;
   res = 0;
 
@@ -196,35 +196,35 @@ int show_status(){
 
 
 int cycle(){
-//   printf("PC=%x\n", pc);
-//  write_reg();
-//  getchar();
+  //   printf("PC=%x\n", pc);
+  //  write_reg();
+  //  getchar();
 
   // Calling interp_wb
   interp_wb();
-//  printf("wb end \n");
+  //  printf("wb end \n");
   
   // Calling interp_mem
   interp_mem();
-//  printf("mem end \n");
+  //  printf("mem end \n");
   
   // Calling interp_ex
   if (interp_ex() != 0){
     return (alu_return);
   }
-//  printf("ex end \n");
+  //  printf("ex end \n");
   
   // Calling interp_id
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
 
-//  printf("id end \n");
+  //  printf("id end \n");
 
   // Calling interp_if
   interp_if();
 
-//  printf("if end \n");
+  //  printf("if end \n");
   if ((ex_mem.branch == true) & (ex_mem.alu_res == 0)){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
@@ -238,7 +238,7 @@ int cycle(){
   if (id_ex.jump == true){
     pc = id_ex.jump_target;
   }
-//  printf("cycle end \n");
+  //  printf("cycle end \n");
   return 0;
 }
 
@@ -250,7 +250,7 @@ int interp(){
   while (1){
     retval = cycle();
     if (retval != 0){
-//      printf ("retval = %d \n", retval);
+      //      printf ("retval = %d \n", retval);
       return retval;
     }
     cycles ++;
@@ -458,7 +458,7 @@ int interp_control(){
       break;
 
 
-      // Or Immediate
+      // Set less than immidiate
     case OPCODE_SLTI :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -473,7 +473,7 @@ int interp_control(){
       break;
 
 
-      // Or Immediate
+      // Set less than immidiate unsigned
     case OPCODE_SLTIU :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -516,7 +516,7 @@ int alu(){
     second_op = id_ex.ext_imm;
   }
   else {
-   second_op = id_ex.rt_value;
+    second_op = id_ex.rt_value;
   }
 
   // checks which opcode it responds too and runs the appropriate function
@@ -541,7 +541,7 @@ int alu(){
       
     case FUNCT_OR :
       ex_mem.alu_res = id_ex.rs_value | second_op;
-    	break;
+      break;
 
     case FUNCT_SLL :
       ex_mem.alu_res = second_op << id_ex.shamt;
@@ -571,6 +571,10 @@ int alu(){
 
     case FUNCT_JR :
       // Do nothing, is handled in the ID stage.
+      break;
+
+    case FUNCT_AND :
+      ex_mem.alu_res = id_ex.rs_value & second_op;
       break;
 
     default :
@@ -632,18 +636,18 @@ void interp_mem(){
 
 // simulates the wb stage.
 void interp_wb(){
-//  printf("in wb \n");
+  //  printf("in wb \n");
   if ((mem_wb.reg_write == false) | (mem_wb.reg_dst == 0)){
-//    printf("no writeback \n");
+    //    printf("no writeback \n");
   }
   else {
     if (mem_wb.mem_to_reg == true){
       regs[mem_wb.reg_dst] = mem_wb.read_data; 
-//      printf(" reg_dst = read_data \n");
+      //      printf(" reg_dst = read_data \n");
     }
     else{
       regs[mem_wb.reg_dst] = mem_wb.alu_res;
-//      printf(" reg_dst = alu_res \n");
+      //      printf(" reg_dst = alu_res \n");
     }
   }
 }

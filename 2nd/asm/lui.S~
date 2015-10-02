@@ -1,0 +1,8 @@
+lui $v0, 1
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+syscall
