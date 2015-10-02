@@ -617,9 +617,72 @@ int interp_control(){
       id_ex.mem_to_reg = false;
       id_ex.branch = false;
       id_ex.jump = false;
-      id_ex.funct = ;
+      id_ex.funct = FUNCT_AND;
       id_ex.reg_dst = GET_RT(if_id.inst);
+      id_ex.ext_imm = ZERO_EXTEND(GET_IMM(if_id.inst));
       break;
+
+
+      // Load Upper Immediate
+    case OPCODE_LUI :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.shamt = 16;
+      id_ex.funct = FUNCT_SLL;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
+      break;
+
+
+      // Or Immediate
+    case OPCODE_ORI :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.funct = FUNCT_OR;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      id_ex.ext_imm = ZERO_EXTEND(GET_IMM(if_id.inst));
+      break;
+
+
+      // Or Immediate
+    case OPCODE_SLTI :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.funct = FUNCT_SLT;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
+      break;
+
+
+      // Or Immediate
+    case OPCODE_SLTIU :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.funct = FUNCT_SLTU;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
+      break;
+
 
 
     default :
@@ -681,13 +744,13 @@ int alu(){
       break;
 
     case FUNCT_SLT :
-      if (id_ex.rs_value < second_op){ex_mem.alu_res = 1;}
-      else {ex_mem.alu_res = 1;}
+      if ((int32_t)id_ex.rs_value < (int32_t)second_op){ex_mem.alu_res = 1;}
+      else {ex_mem.alu_res = 0;}
       break;
 
     case FUNCT_SLTU :
       if (id_ex.rs_value < second_op){ex_mem.alu_res = 1;}
-      else {ex_mem.alu_res = 1;}
+      else {ex_mem.alu_res = 0;}
       break;
 
     case FUNCT_SRL :
