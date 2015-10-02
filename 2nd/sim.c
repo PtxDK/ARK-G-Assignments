@@ -511,6 +511,17 @@ int interp_control(){
       id_ex.jump = false;
       id_ex.funct = GET_FUNCT(if_id.inst);
       id_ex.reg_dst = GET_RD(if_id.inst);
+      if (id_ex.funct == FUNCT_JR){
+	id_ex.mem_read = false;
+	id_ex.mem_write = false;
+	id_ex.reg_write = false;
+	id_ex.alu_src = false;
+	id_ex.branch = false;
+	id_ex.jump = true;
+	tempJ_adress = (GET_ADDRESS(if_id.inst));
+	tempJ_adress = tempJ_adress << 2;
+	id_ex.jump_target = id_ex.rs_value;
+      }
       break;
 	
     case OPCODE_BEQ :
@@ -560,6 +571,7 @@ int interp_control(){
       tempJ_adress = (GET_ADDRESS(if_id.inst));
       tempJ_adress = tempJ_adress << 2;
       id_ex.jump_target = (tempJ_adress) | (if_id.next_pc & MS_4B);
+      id_ex.reg_dst = 31;
       break;
 
 
@@ -640,6 +652,10 @@ int alu(){
       
     case FUNCT_SUBU :
       ex_mem.alu_res = id_ex.rs_value - second_op;
+      break;
+
+    case FUNCT_JR :
+      // Do nothing, is handled in the ID stage.
       break;
 
     default :
