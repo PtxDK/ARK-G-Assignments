@@ -18,6 +18,10 @@
   nop
   nop
 end:
+	nop
+	nop
+	nop
+	nop
   nop # nop the MEM stage to let jal get to WB
   syscall # Detected in EX stage
   nop # nop the ID stage

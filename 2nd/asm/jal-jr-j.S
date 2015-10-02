@@ -8,6 +8,9 @@
   add $v0, $t0, $t0
   j end
 wait_for_it:
+	nop
+	nop
+	nop	
   jr $ra
 end:
   nop # nop the MEM stage to let add get to WB

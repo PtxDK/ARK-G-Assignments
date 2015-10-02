@@ -22,6 +22,7 @@
 // Declarations
 static uint32_t regs[32];
 uint32_t pc;
+int alu_return;
 static size_t instr_counter;
 static size_t cycles;
 uint32_t adress;
@@ -199,24 +200,31 @@ int cycle(){
   printf("PC=%x\n", pc);
   write_reg();
   getchar();
+  //calling interp_wb
   interp_wb();
   printf("wb end \n");
+  //calling interp_mem
   interp_mem();
   printf("mem end \n");
+  //calling interp_ex
   if (interp_ex() != 0){
-    return (ERROR_UNKNOWN_FUNCT);
+    return (alu_return);
   }
   printf("ex end \n");
+  //calling interp_id
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
   printf("id end \n");
-  interp_if(SAW_SYSCALL);
+  //----------------------------------------------------------------------FEJL?!??! gav SAW_SYSCALL?
+  //calling interp_if
+  interp_if();
+  //----------------------------------------------------------------------FEJL?!?!?
   printf("if end \n");
   if ((ex_mem.branch == true) & (ex_mem.alu_res == 0)){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
-    instr_counter -= 2; 
+    instr_counter -= 1; 
   }
   if ((ex_mem.branch == true) & (ex_mem.alu_res != 0)){
     pc =ex_mem.branch_target;
@@ -446,7 +454,8 @@ void interp_if(){
   //printf("in if \n");
   if_id.inst = GET_BIGWORD(mem, pc);
   //printf("inst set \n");
-  if_id.next_pc = pc += 4;
+  pc += 4;
+  if_id.next_pc = pc;
   //printf("pc incrementet \n");
   instr_counter++;
   //printf("instr counter incrementet");
@@ -548,6 +557,10 @@ int interp_control(){
       id_ex.funct = FUNCT_ADD;
       id_ex.rs_value = 0;
       id_ex.rt_value = pc;
+      tempJ_adress = (GET_ADDRESS(if_id.inst));
+      tempJ_adress = tempJ_adress << 2;
+      id_ex.jump_target = (tempJ_adress) | (if_id.next_pc & MS_4B);
+      break;
 
 
     default :
@@ -589,6 +602,7 @@ int alu(){
       break;
 
     case FUNCT_SYSCALL :
+      printf("SYSCALL!");
       return SAW_SYSCALL;
 
     case FUNCT_ADDU :
@@ -596,36 +610,36 @@ int alu(){
       break;
 
     case FUNCT_NOR :
-      ex_mem.alu_res = ~id_ex.rs_value | id_ex.rt_value;
+      ex_mem.alu_res = ~(id_ex.rs_value | second_op);
       break;
       
     case FUNCT_OR :
-      ex_mem.alu_res = id_ex.rs_value | id_ex.rt_value;
+      ex_mem.alu_res = id_ex.rs_value | second_op;
 	break;
 
     case FUNCT_SLL :
-      ex_mem.alu_res = id_ex.rs_value << id_ex.shamt;
+      ex_mem.alu_res = second_op << id_ex.shamt;
 
     case FUNCT_SLT :
-      if (id_ex.rs_value < id_ex.rt_value){ex_mem.alu_res = 1;}
+      if (id_ex.rs_value < second_op){ex_mem.alu_res = 1;}
       else {ex_mem.alu_res = 1;}
       break;
 
     case FUNCT_SLTU :
-      if (id_ex.rs_value < id_ex.rt_value){ex_mem.alu_res = 1;}
+      if (id_ex.rs_value < second_op){ex_mem.alu_res = 1;}
       else {ex_mem.alu_res = 1;}
       break;
 
     case FUNCT_SRL :
-      ex_mem.alu_res = id_ex.rs_value >> id_ex.shamt;
+      ex_mem.alu_res = second_op >> id_ex.shamt;
       break;
       
     case FUNCT_SUB :
-      ex_mem.alu_res = id_ex.rs_value - id_ex.rt_value;
+      ex_mem.alu_res = id_ex.rs_value - second_op;
       break;
       
     case FUNCT_SUBU :
-      ex_mem.alu_res = id_ex.rs_value - id_ex.rt_value;
+      ex_mem.alu_res = id_ex.rs_value - second_op;
       break;
 
     default :
@@ -649,8 +663,9 @@ int interp_ex(){
   ex_mem.reg_dst = id_ex.reg_dst;
   ex_mem.branch_target = (id_ex.next_pc) +  (id_ex.sign_ext_imm << 2);
   //calling alu() to fill the last variable with data.
-  if (alu() != 0){
-    return (ERROR_UNKNOWN_FUNCT);
+  alu_return = alu();
+  if (alu_return != 0){
+    return (alu_return);
   }
   else {
     return 0;
@@ -679,7 +694,6 @@ void interp_mem(){
   
   if (ex_mem.mem_write == true){
     //printf("in if mem_write == true \n");
-    // SEGMENTATION FEJL SKER HER!!!! RIP!!!!!!  FIX PL0X!!!!
     SET_BIGWORD(mem, ex_mem.alu_res, ex_mem.rt_value);
     //printf("done if mem_write == true \n");
   }
