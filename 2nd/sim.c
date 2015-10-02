@@ -70,7 +70,7 @@ struct preg_id_ex {
   uint32_t rt;
   uint32_t rs_value;
   uint32_t rt_value;
-  uint32_t sign_ext_imm;
+  uint32_t ext_imm;
   uint32_t funct;
   int reg_dst;
   int shamt;
@@ -471,7 +471,7 @@ int prep_id_ex(){
   id_ex.rt = GET_RT(if_id.inst);
   id_ex.rs_value = regs[GET_RS(if_id.inst)];
   id_ex.rt_value = regs[GET_RT(if_id.inst)];
-  id_ex.sign_ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
+  id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
   return 0;
 }
 
@@ -592,7 +592,34 @@ int interp_control(){
       id_ex.jump = false;
       id_ex.funct = FUNCT_ADD;
       id_ex.reg_dst = GET_RT(if_id.inst);
+      break;
 
+      // Add Immediate Unassigned
+    case OPCODE_ADDIU :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.funct = FUNCT_ADD;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      break;
+
+
+      // And Immediate
+    case OPCODE_ANDI :
+      id_ex.mem_read = false;
+      id_ex.mem_write = false;
+      id_ex.reg_write = true;
+      id_ex.alu_src = true;
+      id_ex.mem_to_reg = false;
+      id_ex.branch = false;
+      id_ex.jump = false;
+      id_ex.funct = ;
+      id_ex.reg_dst = GET_RT(if_id.inst);
+      break;
 
 
     default :
@@ -619,7 +646,7 @@ int alu(){
   uint32_t second_op;
 
   if (id_ex.alu_src == true){
-    second_op = id_ex.sign_ext_imm;
+    second_op = id_ex.ext_imm;
   }
   else {
    second_op = id_ex.rt_value;
@@ -698,8 +725,8 @@ int interp_ex(){
   ex_mem.rt = id_ex.rt;
   ex_mem.rt_value = id_ex.rt_value;
   ex_mem.reg_dst = id_ex.reg_dst;
-  ex_mem.branch_target = (id_ex.next_pc) +  (id_ex.sign_ext_imm << 2);
-  //calling alu() to fill the last variable with data.
+  ex_mem.branch_target = (id_ex.next_pc) +  (id_ex.ext_imm << 2);
+  // Calling alu() to fill the last variable with data.
   alu_return = alu();
   if (alu_return != 0){
     return (alu_return);
@@ -709,22 +736,22 @@ int interp_ex(){
   }
 }
 
-// simulates the mem stage.
+// Simulates the mem stage.
 void interp_mem(){
-  //printf("in interp mem \n");
+  // printf("in interp mem \n");
   mem_wb.mem_to_reg = ex_mem.mem_to_reg;
-  //printf("mem_to_reg set \n");
+  // printf("mem_to_reg set \n");
   mem_wb.reg_write = ex_mem.reg_write;
-  //printf("reg_write set \n");
+  // printf("reg_write set \n");
   mem_wb.rt = ex_mem.rt;
-  //printf("no rt set \n");
+  // printf("no rt set \n");
   mem_wb.alu_res = ex_mem.alu_res;
-  //printf("no alu_res set \n");
+  // printf("no alu_res set \n");
   mem_wb.reg_dst = ex_mem.reg_dst;
-  //printf("no reg_dst set \n");
+  // printf("no reg_dst set \n");
   
   if (ex_mem.mem_read == true){
-    //printf("in if mem_read == true \n");
+    // printf("in if mem_read == true \n");
     mem_wb.read_data = GET_BIGWORD(mem, ex_mem.alu_res);
     //printf("done if mem_read == true \n");
   }
@@ -765,7 +792,7 @@ void write_reg(){
   printf("rt: %x\n", id_ex.rt);
   printf("rs_value: %x\n",id_ex.rs_value);
   printf("rt_value: %x\n",id_ex.rt_value);
-  printf("sign_ext_imm: %x\n",id_ex.sign_ext_imm);
+  printf("ext_imm: %x\n",id_ex.ext_imm);
   printf("funct: %x\n\n",id_ex.funct);
 
   printf("ex_mem:\n");
