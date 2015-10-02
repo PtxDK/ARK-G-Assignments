@@ -61,8 +61,8 @@ static struct preg_if_id if_id;
 
 struct preg_id_ex {
   bool mem_read; // whether we should read from memory
-  bool mem_write; // whether we should write from memory
-  bool reg_write; // whether we should write back to a register
+  bool mem_write; // Whether we should write from memory
+  bool reg_write; // Whether we should write back to a register
   bool mem_to_reg;
   bool alu_src;
   bool branch;
@@ -80,9 +80,9 @@ struct preg_id_ex {
 static struct preg_id_ex id_ex;
 
 struct preg_ex_mem {
-  bool mem_read; // whether we should read from memory
-  bool mem_write; // whether we should write from memory
-  bool reg_write; // whether we should write back to a register
+  bool mem_read; // Whether we should read from memory
+  bool mem_write; // Whether we should write from memory
+  bool reg_write; // Whether we should write back to a register
   bool mem_to_reg;
   bool branch;
   uint32_t rt;
@@ -110,10 +110,9 @@ static struct preg_mem_wb mem_wb;
 
 // Main
 int main(int argc, char *argv[]) {
-  printf("main start");
+//  printf("main start");
   int res;
   res = 0;
-  
 
   // check if the nuber of arguments is correct.
   if (argc != 3) {
@@ -147,7 +146,7 @@ int main(int argc, char *argv[]) {
 int read_config (const char *path){
   FILE *fdesc = fopen(path, "r");
 
-  if( fdesc == NULL){ // if the file is empty.
+  if( fdesc == NULL){ // If the file is empty.
     return (ERROR_IO_ERROR);
   }
   else{
@@ -197,34 +196,35 @@ int show_status(){
 
 
 int cycle(){
-  printf("PC=%x\n", pc);
-  write_reg();
-  getchar();
-  
-  //calling interp_wb
+//   printf("PC=%x\n", pc);
+//  write_reg();
+//  getchar();
+
+  // Calling interp_wb
   interp_wb();
-  printf("wb end \n");
+//  printf("wb end \n");
   
-  //calling interp_mem
+  // Calling interp_mem
   interp_mem();
-  printf("mem end \n");
+//  printf("mem end \n");
   
-  //calling interp_ex
+  // Calling interp_ex
   if (interp_ex() != 0){
     return (alu_return);
   }
-  printf("ex end \n");
+//  printf("ex end \n");
   
-  //calling interp_id
+  // Calling interp_id
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
 
-  printf("id end \n");
-  //calling interp_if
+//  printf("id end \n");
+
+  // Calling interp_if
   interp_if();
-  //----------------------------------------------------------------------FEJL?!?!?
-  printf("if end \n");
+
+//  printf("if end \n");
   if ((ex_mem.branch == true) & (ex_mem.alu_res == 0)){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
@@ -238,12 +238,10 @@ int cycle(){
   if (id_ex.jump == true){
     pc = id_ex.jump_target;
   }
-  printf("cycle end \n");
+//  printf("cycle end \n");
   return 0;
 }
 
-
-//ikke færdig stub
 // runs the infinite loop and checks if there is more instructions to do.
 int interp(){
   cycles = 0;
@@ -252,205 +250,11 @@ int interp(){
   while (1){
     retval = cycle();
     if (retval != 0){
-      printf ("retval = %d \n", retval);
+//      printf ("retval = %d \n", retval);
       return retval;
     }
     cycles ++;
   }
-  return 0;
-}
-
-//  finds the opcode for a 32 bit mips instruction
-int interp_instr(uint32_t inst){
-  uint32_t opcode;
-  int result;
-  opcode = GET_OPCODE(inst);
-  // checks which opcode it responds too and runs the appropriate function
-  switch(opcode)
-    {
-    case OPCODE_R :
-      result = interp_r(inst);
-      if (result != 0)
-	return result;
-
-    case OPCODE_J :
-      interp_j(inst);
-      break;
-     
-    case OPCODE_JAL :
-      interp_jal(inst);
-      break;
-      
-    case OPCODE_BEQ :
-      interp_beq(inst);
-      break;
-
-    case OPCODE_BNE :
-      interp_beq(inst);
-      break;
-      
-    case OPCODE_ADDIU :
-      interp_addiu(inst);
-      break;
-      
-    case OPCODE_SLTI :
-      interp_beq(inst);
-      break;
-
-    case OPCODE_ANDI :
-      interp_beq(inst);
-      break;
-
-    case OPCODE_ORI :
-      interp_beq(inst);
-      break;
-
-    case OPCODE_LUI :
-      interp_beq(inst);
-      break;
-      
-    case OPCODE_LW :
-      interp_lw(inst);
-      break;
-      
-    case OPCODE_SW :
-      interp_sw(inst);
-      break;
-
-
-    default : 
-      return(ERROR_UNKNOWN_OPCODE);
-    }
-  return 0;
-}
-
-// if the opcode had the R format, it runs this function
-int interp_r(uint32_t inst) {
-  // finds the funct code for the instruction
-  uint32_t f_code;
-  f_code = GET_FUNCT(inst);
-
-  // Runs the function corresponding to the f_code
-  switch(f_code) {
-  case FUNCT_JR :
-    pc = regs[GET_RS(inst)]; // Sets pc = value from register
-    break;
-
-  case FUNCT_SYSCALL :
-    return(STATUS_SYSCALL);
-
-  case FUNCT_ADDU :
-    regs[GET_RD(inst)] = regs[GET_RS(inst)]+regs[GET_RT(inst)];
-    break;
-
-  case FUNCT_SUBU :
-    regs[GET_RD(inst)] = regs[GET_RS(inst)]-regs[GET_RT(inst)];
-    break;
-
-  case FUNCT_AND :
-    regs[GET_RD(inst)] = regs[GET_RS(inst)] & regs[GET_RT(inst)];
-    break;
-
-  case FUNCT_OR :
-    regs[GET_RD(inst)] = regs[GET_RS(inst)] | regs[GET_RT(inst)];
-    break;
-
-  case FUNCT_NOR :
-    regs[GET_RD(inst)] = ~(regs[GET_RS(inst)] | regs[GET_RT(inst)]);
-    break;
-
-  case FUNCT_SLT :
-    if (regs[GET_RS(inst)] < regs[GET_RT(inst)]) { regs[GET_RD(inst)] = 1;}
-    else {regs[GET_RD(inst)] = 0;}
-    break;
-
-  case FUNCT_SLL :
-    regs[GET_RD(inst)] = regs[GET_RS(inst)] << regs[GET_SHAMT(inst)];
-    break;
-
-  case FUNCT_SRL :
-    regs[(GET_RD(inst))] = regs[GET_RS(inst)] >> regs[GET_SHAMT(inst)];
-    break;
-    
-  default :
-    printf(" at default");
-    return(ERROR_UNKNOWN_FUNCT);
-  }
-  return 0;
-}
-
-
-int interp_j(uint32_t inst) {
-  adress = GET_ADDRESS(inst);
-  adress = adress << 2;
-  pc = (pc & MS_4B) | adress;
-  return 0;
-}
-
-int interp_jal(uint32_t inst) {
-  regs[31] = pc + 4;
-  
-  adress = GET_ADDRESS(inst);
-  adress = adress << 2;
-  pc = (pc & MS_4B) | adress;
-  return 0;
-}
-
-int interp_beq(uint32_t inst) {
-  if (GET_RS(inst) == GET_RT(inst)){
-    pc = pc + (SIGN_EXTEND(GET_IMM(inst)) << 2);
-  }
-  return 0;
-}
-
-int interp_bne(uint32_t inst) {
-  if (GET_RS(inst) != GET_RT(inst)){
-    pc = pc + (SIGN_EXTEND(GET_IMM(inst)) << 2);
-  } 
-  return 0;
-}
-
-int interp_lw(uint32_t inst) {
-  regs[GET_RT(inst)] = GET_BIGWORD(mem, regs[GET_RS(inst)] + SIGN_EXTEND(GET_IMM(inst)));
-  return 0;
-}
-
-int interp_sw(uint32_t inst) {
-  SET_BIGWORD(mem, regs[GET_RS(inst)] + SIGN_EXTEND(GET_IMM(inst)), regs[GET_RT(inst)]);
-  return 0;
-}
-
-int interp_addiu(uint32_t inst) {
-  regs[GET_RT(inst)]= regs[GET_RS(inst)] + SIGN_EXTEND(GET_IMM(inst)); 
-  return 0;
-}
-
-
-int interp_andi(uint32_t inst) {
-  regs[GET_RT(inst)] = regs[GET_RS(inst)] & ZERO_EXTEND(GET_IMM(inst));
-  return 0;
-}
-
-
-int interp_lui(uint32_t inst) {
-  regs[GET_RT(inst)] = GET_IMM(inst) << 16;
-  return 0;
-}
-
-int interp_ori(uint32_t inst) {
-  regs[GET_RT(inst)] = regs[GET_RS(inst)] | ZERO_EXTEND(GET_IMM(inst));
-  return 0;
-}
-
-
-int interp_slti(uint32_t inst) {
-  uint32_t signed_extended_immidiate;
-  signed_extended_immidiate = SIGN_EXTEND(GET_IMM(inst));
-
-  if (regs[GET_RS(inst)] < signed_extended_immidiate){
-    regs[GET_RT(inst)] = 1;
-  }
-  else regs[GET_RT(inst)] = 0;
   return 0;
 }
 
@@ -828,18 +632,18 @@ void interp_mem(){
 
 // simulates the wb stage.
 void interp_wb(){
-  printf("in wb \n");
+//  printf("in wb \n");
   if ((mem_wb.reg_write == false) | (mem_wb.reg_dst == 0)){
-    printf("no writeback \n");
+//    printf("no writeback \n");
   }
   else {
     if (mem_wb.mem_to_reg == true){
       regs[mem_wb.reg_dst] = mem_wb.read_data; 
-      printf(" reg_dst = read_data \n");
+//      printf(" reg_dst = read_data \n");
     }
     else{
       regs[mem_wb.reg_dst] = mem_wb.alu_res;
-      printf(" reg_dst = alu_res \n");
+//      printf(" reg_dst = alu_res \n");
     }
   }
 }
@@ -871,3 +675,4 @@ void write_reg(){
   printf("rt: %x\n",mem_wb.rt);
   printf("read_data: %x\n",mem_wb.read_data);
 }
+
