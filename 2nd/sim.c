@@ -12,7 +12,7 @@
 #define ERROR_UNKNOWN_OPCODE (-3)
 #define ERROR_UNKNOWN_FUNCT (-4)
 #define MEMSZ (640*1024)
-#define FOURTH_LAST (MIPS_RESERVE-4+MEMSZ)
+#define FOURTH_LAST (MIPS_RESERVE + MEMSZ)
 #define STATUS_SYSCALL (1)
 #define STATUS_ERROR (2)
 #define SAW_SYSCALL (3)
@@ -50,6 +50,7 @@ int interp_ex();
 void interp_mem();
 void interp_wb();
 void write_reg();
+int forward();
 
 
 struct preg_if_id {
@@ -76,6 +77,7 @@ struct preg_id_ex {
   int shamt;
   uint32_t next_pc;
   uint32_t jump_target;
+  uint32_t rs;
 };
 static struct preg_id_ex id_ex;
 
@@ -88,7 +90,7 @@ struct preg_ex_mem {
   uint32_t rt;
   uint32_t rt_value;
   int alu_res;
-  int reg_dst;
+  uint32_t reg_dst;
   uint32_t branch_target;
 };
 
@@ -197,7 +199,7 @@ int show_status(){
 
 int cycle(){
   //   printf("PC=%x\n", pc);
-  //  write_reg();
+  write_reg();
   //  getchar();
 
   // Calling interp_wb
@@ -238,7 +240,9 @@ int cycle(){
   if (id_ex.jump == true){
     pc = id_ex.jump_target;
   }
-  //  printf("cycle end \n");
+  //forwarding hazzards
+  forward();
+  printf("cycle end \n");
   return 0;
 }
 
@@ -680,3 +684,13 @@ void write_reg(){
   printf("read_data: %x\n",mem_wb.read_data);
 }
 
+
+int forward(){
+  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rs)){
+    id_ex.rs_value = ex_mem.alu_res;
+  }
+  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rt)){
+    id_ex.rt_value = ex_mem.alu_res;
+  }
+  return 0;
+}
