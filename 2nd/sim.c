@@ -278,6 +278,7 @@ void interp_if(){
 int prep_id_ex(){
   id_ex.rt = GET_RT(if_id.inst);
   id_ex.rs_value = regs[GET_RS(if_id.inst)];
+  printf("HERE IS RS SET!");
   id_ex.rt_value = regs[GET_RT(if_id.inst)];
   id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
   return 0;
@@ -505,6 +506,7 @@ int interp_id(){
   prep_id_ex();
   id_ex.shamt = GET_SHAMT(if_id.inst);
   id_ex.next_pc = if_id.next_pc;
+  id_ex.rs = GET_RS(if_id.inst);
   if (interp_control() == 0){
     return 0;
   }
@@ -686,10 +688,10 @@ void write_reg(){
 
 
 int forward(){
-  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rs)){
+  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rs && ex_mem.reg_dst != 0)){
     id_ex.rs_value = ex_mem.alu_res;
   }
-  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rt)){
+  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rt) && (ex_mem.reg_dst != 0)){
     id_ex.rt_value = ex_mem.alu_res;
   }
   return 0;
