@@ -198,45 +198,45 @@ int show_status(){
 
 
 int cycle(){
-  //   printf("PC=%x\n", pc);
   write_reg();
-  //  getchar();
-
   // Calling interp_wb
   interp_wb();
-  //  printf("wb end \n");
+ 
   
   // Calling interp_mem
   interp_mem();
-  //  printf("mem end \n");
+
   
   // Calling interp_ex
   if (interp_ex() != 0){
     return (alu_return);
   }
-  //  printf("ex end \n");
+
   
   // Calling interp_id
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
 
-  //  printf("id end \n");
+
 
   // Calling interp_if
   interp_if();
+  
+  //branch on equal
+  if ((ex_mem.branch == true) && (ex_mem.alu_res == 0)){
+    pc = ex_mem.branch_target;
+    if_id.inst = 0;
+    instr_counter -= 1; 
+  }
 
-  //  printf("if end \n");
-  if ((ex_mem.branch == true) & (ex_mem.alu_res == 0)){
+  //branch on not equal
+  if ((ex_mem.branch == true) && (ex_mem.alu_res != 0)){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
     instr_counter -= 1; 
   }
-  if ((ex_mem.branch == true) & (ex_mem.alu_res != 0)){
-    pc =ex_mem.branch_target;
-    if_id.inst = 0;
-    instr_counter -= 2; 
-  }
+  // jumping
   if (id_ex.jump == true){
     pc = id_ex.jump_target;
   }
@@ -254,7 +254,6 @@ int interp(){
   while (1){
     retval = cycle();
     if (retval != 0){
-      //      printf ("retval = %d \n", retval);
       return retval;
     }
     cycles ++;
@@ -264,21 +263,25 @@ int interp(){
 
 // interp instruction fetch
 void interp_if(){
-  //printf("in if \n");
   if_id.inst = GET_BIGWORD(mem, pc);
-  //printf("inst set \n");
+  
+  //handling of load-use hazards
+  if(id_ex.mem_read){
+    if ((GET_RS(if_id.inst) == id_ex.rt) ||(GET_RT(if_id.inst) == id_ex.rt)){
+      if_id.inst = 0;
+      return;
+    }
+  }
+
   pc += 4;
   if_id.next_pc = pc;
-  //printf("pc incrementet \n");
   instr_counter++;
-  //printf("instr counter incrementet");
 }
 
 //prepping the id_ex struct.
 int prep_id_ex(){
   id_ex.rt = GET_RT(if_id.inst);
   id_ex.rs_value = regs[GET_RS(if_id.inst)];
-  printf("HERE IS RS SET!");
   id_ex.rt_value = regs[GET_RT(if_id.inst)];
   id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
   return 0;
@@ -337,7 +340,7 @@ int interp_control(){
 	id_ex.jump_target = id_ex.rs_value;
       }
       break;
-	
+      //branch on equal
     case OPCODE_BEQ :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -347,7 +350,7 @@ int interp_control(){
       id_ex.jump = false;
       id_ex.funct = FUNCT_SUB;
       break;
-
+      //branch on not equal
     case OPCODE_BNE :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
