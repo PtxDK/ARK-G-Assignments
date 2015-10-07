@@ -256,6 +256,18 @@ void interp_if(){
   instr_counter++;
 }
 
+<<<<<<< HEAD
+=======
+//prepping the id_ex struct.
+int prep_id_ex(){
+  id_ex.rt = GET_RT(if_id.inst);
+  id_ex.rs_value = regs[GET_RS(if_id.inst)];
+  printf("HERE IS RS SET!");
+  id_ex.rt_value = regs[GET_RT(if_id.inst)];
+  id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
+  return 0;
+}
+>>>>>>> 58d76bd510d06f3d8228fe7a6d45f5a23d323ef9
 
 // controls everything
 int interp_control(){
@@ -483,8 +495,12 @@ int interp_id(){
   id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
   id_ex.shamt = GET_SHAMT(if_id.inst);
   id_ex.next_pc = if_id.next_pc;
+<<<<<<< HEAD
   
 
+=======
+  id_ex.rs = GET_RS(if_id.inst);
+>>>>>>> 58d76bd510d06f3d8228fe7a6d45f5a23d323ef9
   if (interp_control() == 0){
     return 0;
   }
@@ -651,6 +667,7 @@ void write_reg(){
 
 
 int forward(){
+<<<<<<< HEAD
   // handling EX hazards
   if (ex_mem.reg_dst != 0){
     if ((ex_mem.reg_write == true) &&
@@ -691,6 +708,13 @@ int forward(){
      (mem_wb.reg_dst == 31) &&
      (id_ex.funct == FUNCT_JR)){
     id_ex.jump_target = id_ex.rs_value;
+=======
+  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rs && ex_mem.reg_dst != 0)){
+    id_ex.rs_value = ex_mem.alu_res;
+  }
+  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rt) && (ex_mem.reg_dst != 0)){
+    id_ex.rt_value = ex_mem.alu_res;
+>>>>>>> 58d76bd510d06f3d8228fe7a6d45f5a23d323ef9
   }
   
   return 0;
