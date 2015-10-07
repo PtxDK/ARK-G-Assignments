@@ -43,6 +43,7 @@ int interp_syscall(uint32_t inst);
 int cycle();
 void interp_if();
 int interp_control();
+int prep_id_ex();
 int interp_id();
 int alu();
 int interp_ex();
@@ -111,6 +112,7 @@ static struct preg_mem_wb mem_wb;
 
 // Main
 int main(int argc, char *argv[]) {
+  //  printf("main start");
   int res;
   res = 0;
 
@@ -196,25 +198,35 @@ int show_status(){
 
 
 int cycle(){
+  //   printf("PC=%x\n", pc);
+  write_reg();
+  //  getchar();
+
   // Calling interp_wb
   interp_wb();
+  //  printf("wb end \n");
   
   // Calling interp_mem
   interp_mem();
+  //  printf("mem end \n");
   
   // Calling interp_ex
   if (interp_ex() != 0){
     return (alu_return);
   }
+  //  printf("ex end \n");
   
   // Calling interp_id
   if(interp_id() != 0){
     return (ERROR_UNKNOWN_OPCODE);
   }
 
+  //  printf("id end \n");
+
   // Calling interp_if
   interp_if();
 
+  //  printf("if end \n");
   if ((ex_mem.branch == true) & (ex_mem.alu_res == 0)){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
@@ -230,6 +242,7 @@ int cycle(){
   }
   //forwarding hazzards
   forward();
+  printf("cycle end \n");
   return 0;
 }
 
@@ -241,6 +254,7 @@ int interp(){
   while (1){
     retval = cycle();
     if (retval != 0){
+      //      printf ("retval = %d \n", retval);
       return retval;
     }
     cycles ++;
@@ -250,14 +264,16 @@ int interp(){
 
 // interp instruction fetch
 void interp_if(){
+  //printf("in if \n");
   if_id.inst = GET_BIGWORD(mem, pc);
+  //printf("inst set \n");
   pc += 4;
   if_id.next_pc = pc;
+  //printf("pc incrementet \n");
   instr_counter++;
+  //printf("instr counter incrementet");
 }
 
-<<<<<<< HEAD
-=======
 //prepping the id_ex struct.
 int prep_id_ex(){
   id_ex.rt = GET_RT(if_id.inst);
@@ -267,7 +283,6 @@ int prep_id_ex(){
   id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
   return 0;
 }
->>>>>>> 58d76bd510d06f3d8228fe7a6d45f5a23d323ef9
 
 // controls everything
 int interp_control(){
@@ -277,7 +292,6 @@ int interp_control(){
 
   switch(opcode)
     {
-      //Load word
     case OPCODE_LW :
       id_ex.mem_read = true;
       id_ex.mem_write = false;
@@ -289,7 +303,7 @@ int interp_control(){
       id_ex.funct = FUNCT_ADD;
       id_ex.reg_dst = GET_RT(if_id.inst);
       break;
-      //Store word
+	
     case OPCODE_SW :
       id_ex.mem_read = false;
       id_ex.mem_write = true;
@@ -300,7 +314,7 @@ int interp_control(){
       id_ex.jump = false;
       id_ex.funct = FUNCT_ADD;
       break;
-      //R-type instructions
+
     case OPCODE_R :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -323,7 +337,7 @@ int interp_control(){
 	id_ex.jump_target = id_ex.rs_value;
       }
       break;
-      //Branch on equal
+	
     case OPCODE_BEQ :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -333,7 +347,7 @@ int interp_control(){
       id_ex.jump = false;
       id_ex.funct = FUNCT_SUB;
       break;
-      //Branch on not equal
+
     case OPCODE_BNE :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -489,18 +503,10 @@ int interp_control(){
 
 // indførte if else check, pludselig intet uendelig loop, dog ingen fejl?
 int interp_id(){
-  id_ex.rt = GET_RT(if_id.inst);
-  id_ex.rs_value = regs[GET_RS(if_id.inst)];
-  id_ex.rt_value = regs[GET_RT(if_id.inst)];
-  id_ex.ext_imm = SIGN_EXTEND(GET_IMM(if_id.inst));
+  prep_id_ex();
   id_ex.shamt = GET_SHAMT(if_id.inst);
   id_ex.next_pc = if_id.next_pc;
-<<<<<<< HEAD
-  
-
-=======
   id_ex.rs = GET_RS(if_id.inst);
->>>>>>> 58d76bd510d06f3d8228fe7a6d45f5a23d323ef9
   if (interp_control() == 0){
     return 0;
   }
@@ -597,6 +603,7 @@ int interp_ex(){
   ex_mem.rt_value = id_ex.rt_value;
   ex_mem.reg_dst = id_ex.reg_dst;
   ex_mem.branch_target = (id_ex.next_pc) +  (id_ex.ext_imm << 2);
+  // Calling alu() to fill the last variable with data.
   alu_return = alu();
   if (alu_return != 0){
     return (alu_return);
@@ -608,31 +615,45 @@ int interp_ex(){
 
 // Simulates the mem stage.
 void interp_mem(){
+  // printf("in interp mem \n");
   mem_wb.mem_to_reg = ex_mem.mem_to_reg;
+  // printf("mem_to_reg set \n");
   mem_wb.reg_write = ex_mem.reg_write;
+  // printf("reg_write set \n");
   mem_wb.rt = ex_mem.rt;
+  // printf("no rt set \n");
   mem_wb.alu_res = ex_mem.alu_res;
+  // printf("no alu_res set \n");
   mem_wb.reg_dst = ex_mem.reg_dst;
+  // printf("no reg_dst set \n");
   
   if (ex_mem.mem_read == true){
+    // printf("in if mem_read == true \n");
     mem_wb.read_data = GET_BIGWORD(mem, ex_mem.alu_res);
+    //printf("done if mem_read == true \n");
   }
   
   if (ex_mem.mem_write == true){
+    //printf("in if mem_write == true \n");
     SET_BIGWORD(mem, ex_mem.alu_res, ex_mem.rt_value);
+    //printf("done if mem_write == true \n");
   }
 }
 
 // simulates the wb stage.
 void interp_wb(){
+  //  printf("in wb \n");
   if ((mem_wb.reg_write == false) | (mem_wb.reg_dst == 0)){
+    //    printf("no writeback \n");
   }
   else {
     if (mem_wb.mem_to_reg == true){
       regs[mem_wb.reg_dst] = mem_wb.read_data; 
+      //      printf(" reg_dst = read_data \n");
     }
     else{
       regs[mem_wb.reg_dst] = mem_wb.alu_res;
+      //      printf(" reg_dst = alu_res \n");
     }
   }
 }
@@ -667,14 +688,13 @@ void write_reg(){
 
 
 int forward(){
-<<<<<<< HEAD
   // handling EX hazards
   if (ex_mem.reg_dst != 0){
     if ((ex_mem.reg_write == true) &&
 	((ex_mem.reg_dst == id_ex.rs) || (ex_mem.reg_dst == id_ex.rt))){
       id_ex.rt_value = ex_mem.alu_res;
       id_ex.rs_value = ex_mem.alu_res;
-  }
+    }
   }
 
   //handling MEM hazards
@@ -708,14 +728,8 @@ int forward(){
      (mem_wb.reg_dst == 31) &&
      (id_ex.funct == FUNCT_JR)){
     id_ex.jump_target = id_ex.rs_value;
-=======
-  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rs && ex_mem.reg_dst != 0)){
-    id_ex.rs_value = ex_mem.alu_res;
-  }
-  if ((ex_mem.reg_write == true) && (ex_mem.reg_dst == id_ex.rt) && (ex_mem.reg_dst != 0)){
-    id_ex.rt_value = ex_mem.alu_res;
->>>>>>> 58d76bd510d06f3d8228fe7a6d45f5a23d323ef9
   }
   
   return 0;
 }
+
