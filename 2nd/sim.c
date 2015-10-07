@@ -684,11 +684,14 @@ int forward(){
       id_ex.rt_value = mem_wb.alu_res;
     }
   }
-
-  /*
-  if(){
+  
+  if((mem_wb.reg_dst != 0) &&
+     !((ex_mem.reg_write) && (ex_mem.reg_dst != 0)
+       && ex_mem.reg_dst != id_ex.rs) && 
+     (mem_wb.reg_dst == 31) &&
+     (id_ex.funct == FUNCT_JR)){
     id_ex.jump_target = id_ex.rs_value;
   }
-  */
+  
   return 0;
 }
