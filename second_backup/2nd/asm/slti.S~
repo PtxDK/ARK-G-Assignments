@@ -1,0 +1,8 @@
+slti $v0, $t5, 2
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+syscall
