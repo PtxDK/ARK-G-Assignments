@@ -1,4 +1,5 @@
 a
-b = z
+b != z
 c = q
 !
+LOL
