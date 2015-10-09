@@ -1,0 +1,11 @@
+#ifndef ARK2015_MEM_H
+#define ARK2015_MEM_H
+#endif // ark2015_MEM_H
+
+
+#define MEMSZ (640*1024)
+
+
+//declarations
+static unsigned char mem[MEMSZ];
+int inst_read(uint32_t adr, uint_32)
