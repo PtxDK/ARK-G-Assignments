@@ -68,6 +68,7 @@ struct preg_id_ex {
   bool alu_src;
   bool branch;
   bool jump;
+  bool bzero;
   uint32_t rt;
   uint32_t rs_value;
   uint32_t rt_value;
@@ -78,6 +79,7 @@ struct preg_id_ex {
   uint32_t next_pc;
   uint32_t jump_target;
   uint32_t rs;
+  
 };
 static struct preg_id_ex id_ex;
 
@@ -87,6 +89,7 @@ struct preg_ex_mem {
   bool reg_write; // Whether we should write back to a register
   bool mem_to_reg;
   bool branch;
+  bool bzero;
   uint32_t rt;
   uint32_t rt_value;
   int alu_res;
@@ -223,15 +226,15 @@ int cycle(){
   // Calling interp_if
   interp_if();
   
-  //branch on equal
-  if ((ex_mem.branch == true) && (ex_mem.alu_res == 0)){
+  //branch on equal.
+  if ((ex_mem.branch == true) && (ex_mem.alu_res == 0) && (ex_mem.bzero == true)){
     pc = ex_mem.branch_target;
     if_id.inst = 0;
     instr_counter -= 1; 
   }
 
-  //branch on not equal
-  if ((ex_mem.branch == true) && (ex_mem.alu_res != 0)){
+  //branc on not equal.
+  if ((ex_mem.branch == true) && (ex_mem.alu_res != 0) && (ex_mem.bzero == false)){
     pc =ex_mem.branch_target;
     if_id.inst = 0;
     instr_counter -= 1; 
@@ -348,6 +351,7 @@ int interp_control(){
       id_ex.alu_src = false;
       id_ex.branch = true;
       id_ex.jump = false;
+      id_ex.bzero = true;
       id_ex.funct = FUNCT_SUB;
       break;
       //branch on not equal
@@ -358,6 +362,7 @@ int interp_control(){
       id_ex.alu_src = false;
       id_ex.branch = true;
       id_ex.jump = false;
+      id_ex.bzero = false;
       id_ex.funct = FUNCT_SUB;
       break;
 
@@ -369,6 +374,7 @@ int interp_control(){
       id_ex.alu_src = false;
       id_ex.branch = false;
       id_ex.jump = true;
+      id_ex.bzero = false;
       tempJ_adress = (GET_ADDRESS(if_id.inst));
       tempJ_adress = tempJ_adress << 2;
       id_ex.jump_target = (tempJ_adress) | (if_id.next_pc & MS_4B);
@@ -597,7 +603,8 @@ int alu(){
 
 // simulates the ex stage.
 int interp_ex(){
-  ex_mem.branch = id_ex.branch; 
+  ex_mem.branch = id_ex.branch;
+  ex_mem.bzero = id_ex.bzero;
   ex_mem.mem_to_reg = id_ex.mem_to_reg;
   ex_mem.mem_read = id_ex.mem_read;
   ex_mem.mem_write = id_ex.mem_write;
