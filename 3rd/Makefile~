@@ -6,7 +6,7 @@ CFLAGS=-Werror -Wall -Wextra -pedantic -std=c11
 all:sim
 
 sim: mips32.h elf.o sim.c
-	 $(CC) $(CFLAGS) -g -o sim elf.o sim.c
+	 $(CC) $(CFLAGS) -o sim elf.o sim.c
 
 
 elf.o: elf.c elf.h

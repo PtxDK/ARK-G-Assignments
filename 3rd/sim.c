@@ -19,7 +19,7 @@
 
 
 
-// Declarations
+// Declarations of variables and functions.
 static uint32_t regs[32];
 uint32_t pc;
 int alu_return;
@@ -52,14 +52,14 @@ void interp_wb();
 void write_reg();
 int forward();
 
-
+// the struct simulating the if_id stage.
 struct preg_if_id {
   uint32_t inst;
   uint32_t next_pc;
-  //...
 };
 static struct preg_if_id if_id;
 
+// the struct simulating the id_ex stage.
 struct preg_id_ex {
   bool mem_read; // whether we should read from memory
   bool mem_write; // Whether we should write from memory
@@ -79,10 +79,11 @@ struct preg_id_ex {
   uint32_t next_pc;
   uint32_t jump_target;
   uint32_t rs;
-  
 };
 static struct preg_id_ex id_ex;
 
+
+//the struct simulating the ex_em stage
 struct preg_ex_mem {
   bool mem_read; // Whether we should read from memory
   bool mem_write; // Whether we should write from memory
@@ -99,6 +100,8 @@ struct preg_ex_mem {
 
 static struct preg_ex_mem ex_mem;
 
+
+//the struct simulating the mem_wb stage.
 struct preg_mem_wb {
   bool mem_to_reg;
   bool reg_write;
@@ -115,7 +118,6 @@ static struct preg_mem_wb mem_wb;
 
 // Main
 int main(int argc, char *argv[]) {
-  //  printf("main start");
   int res;
   res = 0;
 
@@ -137,14 +139,15 @@ int main(int argc, char *argv[]) {
   // sets the SP (that is located in regs[29]) to the 4th last in the memory.
   regs[29]= FOURTH_LAST;
 
+  //run the instructions in the file.
   res = interp();
 
   // Show status of the registers.
   show_status();
 
   return res;
-   
 }
+
 
 
 // Open and close the startup file
@@ -182,7 +185,8 @@ int read_config_stream (FILE * fp){
 // Prints the status of the registers.
 int show_status(){
   printf("Executed %zu instructions \n", instr_counter);
-  printf("pc = 0x%x \n", pc);       // Program Couner
+  printf("%zu cycles(s) elapsed \n", cycles);
+  printf("pc = 0x%x \n", pc);       // Program Counter
   printf("at = 0x%x \n", pc);       // Assembler Temp
   printf("v0 = 0x%x \n", regs[2]);  // Values for funtion results
   printf("v1 = 0x%x \n", regs[3]);
@@ -199,9 +203,8 @@ int show_status(){
   return 0;
 }
 
-
+// simulates the clock cycle.
 int cycle(){
-  write_reg();
   // Calling interp_wb
   interp_wb();
  
@@ -245,7 +248,6 @@ int cycle(){
   }
   //forwarding hazzards
   forward();
-  printf("cycle end \n");
   return 0;
 }
 
@@ -290,7 +292,7 @@ int prep_id_ex(){
   return 0;
 }
 
-// controls everything
+// controls what instrution is executed and sets the required varibles.
 int interp_control(){
   uint32_t opcode;
   uint32_t tempJ_adress;
@@ -298,6 +300,7 @@ int interp_control(){
 
   switch(opcode)
     {
+      // Load word
     case OPCODE_LW :
       id_ex.mem_read = true;
       id_ex.mem_write = false;
@@ -309,7 +312,9 @@ int interp_control(){
       id_ex.funct = FUNCT_ADD;
       id_ex.reg_dst = GET_RT(if_id.inst);
       break;
+
 	
+      // Store word
     case OPCODE_SW :
       id_ex.mem_read = false;
       id_ex.mem_write = true;
@@ -321,6 +326,8 @@ int interp_control(){
       id_ex.funct = FUNCT_ADD;
       break;
 
+      
+      // Different R type instructions
     case OPCODE_R :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -343,7 +350,9 @@ int interp_control(){
 	id_ex.jump_target = id_ex.rs_value;
       }
       break;
-      //branch on equal
+
+
+      //Branch on equal
     case OPCODE_BEQ :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -354,7 +363,9 @@ int interp_control(){
       id_ex.bzero = true;
       id_ex.funct = FUNCT_SUB;
       break;
-      //branch on not equal
+
+
+      //Branch on not equal
     case OPCODE_BNE :
       id_ex.mem_read = false;
       id_ex.mem_write = false;
@@ -365,6 +376,7 @@ int interp_control(){
       id_ex.bzero = false;
       id_ex.funct = FUNCT_SUB;
       break;
+
 
       // Jump
     case OPCODE_J :
@@ -411,6 +423,7 @@ int interp_control(){
       id_ex.funct = FUNCT_ADD;
       id_ex.reg_dst = GET_RT(if_id.inst);
       break;
+
 
       // Add Immediate Unassigned
     case OPCODE_ADDIU :
@@ -603,6 +616,7 @@ int alu(){
 
 // simulates the ex stage.
 int interp_ex(){
+  //forwarding variables
   ex_mem.branch = id_ex.branch;
   ex_mem.bzero = id_ex.bzero;
   ex_mem.mem_to_reg = id_ex.mem_to_reg;
@@ -625,45 +639,33 @@ int interp_ex(){
 
 // Simulates the mem stage.
 void interp_mem(){
-  // printf("in interp mem \n");
+  //forwarding variables
   mem_wb.mem_to_reg = ex_mem.mem_to_reg;
-  // printf("mem_to_reg set \n");
   mem_wb.reg_write = ex_mem.reg_write;
-  // printf("reg_write set \n");
   mem_wb.rt = ex_mem.rt;
-  // printf("no rt set \n");
   mem_wb.alu_res = ex_mem.alu_res;
-  // printf("no alu_res set \n");
   mem_wb.reg_dst = ex_mem.reg_dst;
-  // printf("no reg_dst set \n");
+
   
   if (ex_mem.mem_read == true){
-    // printf("in if mem_read == true \n");
     mem_wb.read_data = GET_BIGWORD(mem, ex_mem.alu_res);
-    //printf("done if mem_read == true \n");
   }
   
   if (ex_mem.mem_write == true){
-    //printf("in if mem_write == true \n");
     SET_BIGWORD(mem, ex_mem.alu_res, ex_mem.rt_value);
-    //printf("done if mem_write == true \n");
   }
 }
 
 // simulates the wb stage.
 void interp_wb(){
-  //  printf("in wb \n");
   if ((mem_wb.reg_write == false) | (mem_wb.reg_dst == 0)){
-    //    printf("no writeback \n");
   }
   else {
     if (mem_wb.mem_to_reg == true){
       regs[mem_wb.reg_dst] = mem_wb.read_data; 
-      //      printf(" reg_dst = read_data \n");
     }
     else{
       regs[mem_wb.reg_dst] = mem_wb.alu_res;
-      //      printf(" reg_dst = alu_res \n");
     }
   }
 }
@@ -696,7 +698,7 @@ void write_reg(){
   printf("read_data: %x\n",mem_wb.read_data);
 }
 
-
+// handles the hazards.
 int forward(){
   // handling EX hazards
   if (ex_mem.reg_dst != 0){
